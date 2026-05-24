@@ -27,7 +27,10 @@ jobs:
       - name: 安装依赖
         run: flutter pub get
 
-      - name: 编译 macOS 版（不签名）
+      - name: 代码分析（仅错误阻止构建）
+        run: flutter analyze --fatal-infos=false --fatal-warnings=false
+
+      - name: 编译 macOS 版
         run: |
           flutter build macos --release --dart-define=API_BASE_URL=https://api.fhc-ai.com/api/v1
 

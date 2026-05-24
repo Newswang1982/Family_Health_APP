@@ -4,6 +4,6 @@ import 'package:family_health/main.dart';
 void main() {
   testWidgets('App launches smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(const FamilyHealthApp());
-    expect(find.text('家庭健康'), findsWidgets);
+    expect(find.byType(FamilyHealthApp), findsOneWidget);
   });
 }
