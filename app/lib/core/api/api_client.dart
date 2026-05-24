@@ -16,7 +16,7 @@ class ApiClient {
   late final Dio _dio;
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
-  static const String _tokenKey = 'auth_token';
+  // static const String _tokenKey = 'auth_token';
 
   /// Returns the current base URL
   String get baseUrl => _dio.options.baseUrl;
