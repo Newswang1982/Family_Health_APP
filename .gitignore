@@ -1,0 +1,39 @@
+# Flutter
+**/build/
+**/ios/.symlinks/
+**/ios/Pods/
+**/.dart_tool/
+**/.packages
+**/.pub/
+**/pubspec.lock
+
+# Android
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+**/.gradle/
+
+# macOS
+**/macos/Pods/
+**/*.dSYM.zip
+**/*.dSYM
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# Environment
+.env
+*.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backend binary
+backend/bin/
+backend/server
+backend/server_*

@@ -1,0 +1,7 @@
+-- QQ & Email login support
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(100) UNIQUE DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qq_openid VARCHAR(100) UNIQUE DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qq_nickname VARCHAR(100) DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS qq_avatar VARCHAR(500) DEFAULT '';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email != '';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_qq_openid ON users(qq_openid) WHERE qq_openid != '';

@@ -1,0 +1,53 @@
+name: family_health
+description: "A Flutter health app for family health management."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # HTTP client
+  dio: ^5.7.0
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Routing
+  go_router: ^14.8.1
+
+  # Secure token storage
+  flutter_secure_storage: ^9.2.4
+
+  # Internationalization / date formatting
+  intl: ^0.20.2
+
+  # Charts and K-line graphs
+  fl_chart: ^0.70.2
+
+  # Sharing reports
+  share_plus: ^10.1.4
+
+  # Photo OCR input
+  image_picker: ^1.1.2
+
+  # Push notifications
+  flutter_local_notifications: ^18.0.1
+
+  # BLE device sync
+  flutter_blue_plus: ^1.35.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
