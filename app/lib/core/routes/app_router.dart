@@ -10,6 +10,7 @@ import 'package:family_health/pages/settings/settings_page.dart';
 import 'package:family_health/pages/splash/splash_page.dart';
 import 'package:family_health/pages/auth/login_page.dart';
 import 'package:family_health/pages/auth/register_page.dart';
+import 'package:family_health/pages/auth/qr_login_page.dart';
 import 'package:family_health/pages/records/vitals_record_page.dart';
 import 'package:family_health/pages/records/sleep_record_page.dart';
 import 'package:family_health/pages/records/smoking_record_page.dart';
@@ -129,6 +130,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/auth/register',
         name: 'register',
         builder: (context, state) => PageRegistry.register(context, state),
+      ),
+      GoRoute(
+        path: '/auth/qr-login',
+        name: 'qrLogin',
+        builder: (context, state) => const QRLoginPage(),
       ),
 
       // Authenticated shell route with bottom navigation

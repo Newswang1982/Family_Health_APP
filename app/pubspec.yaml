@@ -26,6 +26,9 @@ dependencies:
   flutter_secure_storage: ^9.2.4
 
   # Internationalization / date formatting
+  flutter_localizations:
+    sdk: flutter
+
   intl: ^0.20.2
 
   # Charts and K-line graphs
@@ -50,4 +53,5 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 
 flutter:
+  generate: true
   uses-material-design: true
