@@ -29,8 +29,7 @@ jobs:
 
       - name: 编译 macOS 版（不签名）
         run: |
-          flutter build macos --release --dart-define=API_BASE_URL=https://api.fhc-ai.com/api/v1 \
-            --no-codesign
+          flutter build macos --release --dart-define=API_BASE_URL=https://api.fhc-ai.com/api/v1
 
       - name: 打包
         run: |
