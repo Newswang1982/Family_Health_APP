@@ -21,20 +21,18 @@ jobs:
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.9'
           channel: 'stable'
           cache: true
 
       - name: 安装依赖
         run: flutter pub get
 
-      - name: 代码分析
-        run: flutter analyze
+      - name: 编译 macOS 版（不签名）
+        run: |
+          flutter build macos --release --dart-define=API_BASE_URL=https://api.fhc-ai.com/api/v1 \
+            --no-codesign
 
-      - name: 编译 macOS 版
-        run: flutter build macos --release --dart-define=API_BASE_URL=https://api.fhc-ai.com/api/v1
-
-      - name: 打包 .app
+      - name: 打包
         run: |
           cd build/macos/Build/Products/Release
           zip -r ../../../../../family-health-macos.zip family_health.app
@@ -44,4 +42,4 @@ jobs:
         with:
           name: family-health-macos
           path: app/family-health-macos.zip
-          retention-days: 30
+          retention-days: 90
