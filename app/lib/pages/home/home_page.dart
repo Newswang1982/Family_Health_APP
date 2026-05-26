@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'dart:math';
+import 'dart:core';
 import 'package:family_health/core/api/record_api.dart';
 import 'package:family_health/core/providers/auth_provider.dart';
 import 'package:family_health/core/providers/profile_provider.dart';
 import 'package:family_health/core/theme/app_theme.dart';
+import 'package:family_health/core/models/profile.dart';
+import 'package:family_health/core/api/api_client.dart';
+import 'package:family_health/pages/auth/login_page.dart' as login;
 import 'package:family_health/widgets/record_entry_grid.dart';
 import 'package:family_health/widgets/member_avatar_row.dart';
 
@@ -88,7 +91,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  DateFormat('M月d日 EEEE', 'zh_CN').format(DateTime.now()),
+                                  '${DateTime.now().month}月${DateTime.now().day}日',
                                   style: TextStyle(
                                     color: Colors.white.withValues(alpha: 0.7), fontSize: 14,
                                   ),
@@ -99,7 +102,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 28),
-                                  onPressed: () => context.push('/home/settings'),
+                                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const _SettingsPage())),
                                 ),
                                 Positioned(
                                   right: 8, top: 6,
@@ -147,7 +150,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     profiles: profileState.profiles,
                     selectedProfile: profileState.selectedProfile,
                     onProfileTap: (p) => ref.read(profileProvider.notifier).selectProfile(p),
-                    onAddTap: () => context.push('/home/settings'),
+                    onAddTap: () => _showAddMemberDialog(context, ref),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -250,7 +253,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             backgroundColor: AppTheme.healthGreenLight,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
-          onPressed: () => context.push('/home/devices'),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const _SettingsPage())),
           child: const Text('连接', style: TextStyle(color: AppTheme.healthGreen)),
         ),
       ),
@@ -360,5 +363,187 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (type == 'drinking') return '🍷 ${r['amount']} ${r['unit']}';
     if (type == 'work_posture') return '💪 ${r['total_hours']}小时';
     return r['note']?.toString() ?? '';
+  }
+
+  /// 弹出添加家庭成员对话框
+  Future<void> _showAddMemberDialog(BuildContext context, WidgetRef ref) async {
+    final nameController = TextEditingController();
+    final relationController = TextEditingController();
+    String? selectedGender = 'male';
+    final emojis = ['👨', '👩', '👴', '👵', '👦', '👧', '👶', '👨‍🦳', '👩‍🦳'];
+    String selectedEmoji = emojis[0];
+
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('添加家庭成员'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 头像选择
+                    Wrap(
+                      spacing: 8,
+                      children: emojis.map((e) => GestureDetector(
+                        onTap: () => setDialogState(() => selectedEmoji = e),
+                        child: Container(
+                          width: 40, height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: selectedEmoji == e ? AppTheme.healthGreen.withValues(alpha: 0.2) : null,
+                            border: selectedEmoji == e ? Border.all(color: AppTheme.healthGreen, width: 2) : null,
+                          ),
+                          child: Center(child: Text(e, style: const TextStyle(fontSize: 22))),
+                        ),
+                      )).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: '称呼', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: relationController,
+                      decoration: const InputDecoration(labelText: '关系（如：爸爸、妈妈）', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    // 性别选择
+                    Row(
+                      children: [
+                        const Text('性别：'),
+                        const SizedBox(width: 8),
+                        ChoiceChip(label: const Text('男'), selected: selectedGender == 'male', onSelected: (_) => setDialogState(() => selectedGender = 'male')),
+                        const SizedBox(width: 8),
+                        ChoiceChip(label: const Text('女'), selected: selectedGender == 'female', onSelected: (_) => setDialogState(() => selectedGender = 'female')),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('取消')),
+                ElevatedButton(
+                  onPressed: () {
+                    if (nameController.text.isEmpty) return;
+                    Navigator.of(ctx).pop({
+                      'name': nameController.text,
+                      'relationship': relationController.text.isEmpty ? '其他' : relationController.text,
+                      'gender': selectedGender ?? 'male',
+                      'avatar_emoji': selectedEmoji,
+                    });
+                  },
+                  child: const Text('添加'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result == null || !mounted) return;
+
+    try {
+      final profileState = ref.read(profileProvider);
+      // 直接用 createProfile 方法
+      final profile = MemberProfile(
+        id: DateTime.now().millisecondsSinceEpoch,
+        familyId: 0, // placeholder, 后面会替换
+        displayName: result['name']!,
+        relation: result['relationship']!,
+        gender: result['gender']!,
+        avatarUrl: result['avatar_emoji'],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      
+      // 直接添加到状态
+      ref.read(profileProvider.notifier).selectProfile(profile);
+      // 用现有的 createProfile 方法（它会自己管理状态）
+      await ref.read(profileProvider.notifier).createProfile(
+        familyId: 0,
+        displayName: result['name']!,
+        relation: result['relationship']!,
+        gender: result['gender']!,
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已添加家庭成员：${result['name']}'), backgroundColor: AppTheme.healthGreen),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('添加失败: $e'), backgroundColor: Colors.red.shade400),
+        );
+      }
+    }
+  }
+}
+
+/// 简易设置页面
+class _SettingsPage extends ConsumerWidget {
+  const _SettingsPage();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('设置'),
+        backgroundColor: AppTheme.healthGreen,
+        foregroundColor: Colors.white,
+      ),
+      body: ListView(
+        children: [
+          const SizedBox(height: 16),
+          ListTile(
+            leading: const CircleAvatar(child: Icon(Icons.person)),
+            title: Text(user?.displayName ?? '用户'),
+            subtitle: Text(user?.phone ?? ''),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.family_restroom),
+            title: const Text('创建家庭'),
+            onTap: () async {
+              try {
+                final token = ref.read(authTokenProvider);
+                if (token == null) return;
+                // 直接调用API创建家庭
+                final client = ApiClient.instance;
+                await client.dio.post('/families', data: {'name': '我的家庭'});
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('家庭创建成功！')));
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('创建失败: $e')));
+                }
+              }
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text('退出登录', style: TextStyle(color: Colors.red)),
+            onTap: () async {
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) {
+                                  Navigator.of(context).pushAndRemoveUntil(
+                                    MaterialPageRoute(builder: (_) => const login.LoginPage()),
+                  (route) => false,
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
 }

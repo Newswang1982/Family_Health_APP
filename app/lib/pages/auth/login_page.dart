@@ -1,11 +1,11 @@
 // @dart=3.6
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:family_health/core/providers/auth_provider.dart';
 import 'package:family_health/core/api/auth_api.dart';
 import 'package:family_health/core/theme/app_theme.dart';
 import 'package:family_health/core/api/api_client.dart';
+import 'package:family_health/pages/home/home_page.dart';
 
 final authApiProvider = Provider<AuthApi>((ref) {
   return AuthApi(ApiClient.instance);
@@ -24,7 +24,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _obscurePassword = true;
-  bool _isEmail = false;
 
   @override
   void dispose() {
@@ -42,11 +41,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         username: _accountController.text.trim(),
         password: _passwordController.text,
       );
-      if (mounted) context.go('/home');
+      // 登录成功后直接替换为首页
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const HomePage()),
+          (route) => false,
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('登录失败: $e'), backgroundColor: Colors.red.shade400),
+          SnackBar(
+            content: Text('登录失败: $e'),
+            backgroundColor: Colors.red.shade400,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     } finally {
@@ -54,27 +63,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
   }
 
-  void _weChatLogin() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('请在 .env 配置微信 AppID 后使用'), behavior: SnackBarBehavior.floating),
+  void _goRegister() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const _RegisterPage(),
+      ),
     );
-  }
-
-  void _qqLogin() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('请在 .env 配置 QQ AppID 后使用'), behavior: SnackBarBehavior.floating),
-    );
-  }
-
-  void _switchToEmail() {
-    setState(() {
-      _isEmail = true;
-      _accountController.text = '';
-    });
-  }
-
-  void _qrLogin() {
-    context.push('/auth/qr-login');
   }
 
   @override
@@ -123,19 +117,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                   const SizedBox(height: 48),
 
-                  // Phone / Email input
+                  // Phone input
                   TextFormField(
                     controller: _accountController,
-                    keyboardType: TextInputType.text,
+                    keyboardType: TextInputType.phone,
                     decoration: InputDecoration(
-                      prefixIcon: Icon(_isEmail ? Icons.email_outlined : Icons.phone_android),
-                      labelText: '手机号 / 邮箱',
-                      hintText: _isEmail ? 'your@email.com' : '138 0000 0000',
+                      prefixIcon: const Icon(Icons.phone_android),
+                      labelText: '手机号',
+                      hintText: '138 0000 0000',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
                       fillColor: Colors.grey[50],
                     ),
-                    validator: (v) => (v == null || v.isEmpty) ? '请输入账号' : null,
+                    validator: (v) => (v == null || v.isEmpty) ? '请输入手机号' : null,
                   ),
                   const SizedBox(height: 16),
 
@@ -178,38 +172,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   const SizedBox(height: 12),
 
                   TextButton(
-                    onPressed: () => context.push('/auth/register'),
+                    onPressed: _goRegister,
                     child: Text(
                       '还没有账号？立即注册',
                       style: TextStyle(color: Colors.grey[600], fontSize: 13),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Divider
-                  Row(
-                    children: [
-                      const Expanded(child: Divider()),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('其他登录方式', style: TextStyle(color: Colors.grey[500], fontSize: 13)),
-                      ),
-                      const Expanded(child: Divider()),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Social login buttons
-                  Row(
-                    children: [
-                      Expanded(child: _socialBtn(Icons.wechat, '微信', const Color(0xFF07C160), _weChatLogin)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _socialBtn(Icons.chat_bubble, 'QQ', const Color(0xFF12B7F5), _qqLogin)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _socialBtn(Icons.qr_code, '扫码', Colors.green, _qrLogin)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _socialBtn(Icons.email_outlined, '邮箱', Colors.grey[600]!, _switchToEmail)),
-                    ],
                   ),
                   const SizedBox(height: 40),
                 ],
@@ -220,25 +187,161 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       ),
     );
   }
+}
 
-  Widget _socialBtn(IconData icon, String label, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(14),
+// ── 简单注册页面 ──
+
+class _RegisterPage extends ConsumerStatefulWidget {
+  const _RegisterPage();
+
+  @override
+  ConsumerState<_RegisterPage> createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends ConsumerState<_RegisterPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  String? _validatePhone(String? value) {
+    if (value == null || value.isEmpty) return '请输入手机号';
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) return '请输入密码';
+    if (value.length < 6) return '密码至少6位';
+    return null;
+  }
+
+  String? _validateConfirm(String? value) {
+    if (value == null || value.isEmpty) return '请确认密码';
+    if (value != _passwordController.text) return '两次密码不一致';
+    return null;
+  }
+
+  Future<void> _register() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authProvider.notifier).register(
+        phone: _phoneController.text.trim(),
+        password: _passwordController.text,
+        name: _nameController.text.trim(),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('注册成功！')));
+        // 直接跳转到首页
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const HomePage()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('注册失败: $e'), backgroundColor: Colors.red.shade400),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text('注册'),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Form(
+          key: _formKey,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const SizedBox(height: 32),
+            Container(
+              width: 64, height: 64,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.person_add_alt_1, size: 32, color: AppTheme.healthGreen),
             ),
-            child: Icon(icon, color: color, size: 26),
-          ),
-          const SizedBox(height: 6),
-          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[700])),
-        ],
+            const SizedBox(height: 24),
+            Text('创建账号', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text('注册后即可管理您的家庭健康', style: TextStyle(color: Colors.grey[600])),
+            const SizedBox(height: 40),
+            TextFormField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: '昵称', prefixIcon: Icon(Icons.person_outline), border: OutlineInputBorder()),
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(labelText: '手机号', prefixIcon: Icon(Icons.phone_android), border: OutlineInputBorder()),
+              validator: _validatePhone,
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                labelText: '密码', prefixIcon: const Icon(Icons.lock_outline), border: const OutlineInputBorder(),
+                suffixIcon: IconButton(icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscurePassword = !_obscurePassword)),
+              ),
+              validator: _validatePassword,
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _confirmPasswordController,
+              obscureText: _obscureConfirm,
+              decoration: InputDecoration(
+                labelText: '确认密码', prefixIcon: const Icon(Icons.lock), border: const OutlineInputBorder(),
+                suffixIcon: IconButton(icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm)),
+              ),
+              validator: _validateConfirm,
+              textInputAction: TextInputAction.done,
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              height: 48,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _register,
+                child: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('注 册', style: TextStyle(fontSize: 16)),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Text('已有账号？', style: TextStyle(color: Colors.grey[600])),
+              TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('立即登录')),
+            ]),
+            const SizedBox(height: 40),
+          ]),
+        ),
       ),
     );
   }
