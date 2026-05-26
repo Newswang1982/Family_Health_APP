@@ -135,7 +135,7 @@ func main() {
 		api.PUT("/notifications/:id/read", notificationHandler.MarkAsRead)
 	}
 
-	addr := fmt.Sprintf(":%s", cfg.ServerPort)
+	addr := fmt.Sprintf("0.0.0.0:%s", cfg.ServerPort)
 	log.Printf("Server starting on %s", addr)
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
